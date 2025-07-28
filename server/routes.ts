@@ -11,7 +11,11 @@ import {
   isButtonOnCooldown, 
   getRemainingCooldown,
   applyUpgradeEffect,
-  checkRageModeExpiry
+  checkRageModeExpiry,
+  calculatePrestigeCost,
+  calculatePrestigePoints,
+  getPrestigeBonus,
+  canPrestige
 } from "./services/gameLogic.js";
 import { insertUserSchema, insertGameStateSchema } from "@shared/schema.js";
 
@@ -146,9 +150,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const clicksToAdd = calculateClicksToAdd(1, gameState.clickMultiplier, gameState.rageMode);
+      const prestigeBonus = getPrestigeBonus(gameState.prestigeLevel || 0);
+      const totalMultiplier = gameState.clickMultiplier + prestigeBonus.clickMultiplier;
+      const totalResetReduction = gameState.resetChanceReduction + prestigeBonus.resetChanceReduction;
+      
+      const clicksToAdd = calculateClicksToAdd(1, totalMultiplier, gameState.rageMode);
       const newNumber = gameState.currentNumber + clicksToAdd;
       const newTotalClicks = gameState.totalClicks + clicksToAdd;
+      const newMaxNumber = Math.max(gameState.maxNumber || 0, newNumber);
 
       // Check for reset
       let resetOccurred = false;
@@ -156,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let newTotalResets = gameState.totalResets;
       let newLuckyStreakProtection = gameState.luckyStreakProtection;
 
-      if (shouldReset(newNumber, gameState.resetChanceReduction, gameState.luckyStreakProtection)) {
+      if (shouldReset(newNumber, totalResetReduction, gameState.luckyStreakProtection)) {
         resetOccurred = true;
         
         // Check reset insurance
@@ -174,13 +183,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const updatedGameState = await storage.updateGameState(userId, {
-        currentNumber: finalNumber,
-        totalClicks: newTotalClicks,
-        totalResets: newTotalResets,
-        luckyStreakProtection: newLuckyStreakProtection,
+      // Validate all values before saving
+      const updateData = {
+        currentNumber: isFinite(finalNumber) ? Math.floor(finalNumber) : 0,
+        maxNumber: isFinite(newMaxNumber) ? Math.floor(newMaxNumber) : 0,
+        totalClicks: isFinite(newTotalClicks) ? Math.floor(newTotalClicks) : 0,
+        totalResets: isFinite(newTotalResets) ? Math.floor(newTotalResets) : 0,
+        luckyStreakProtection: isFinite(newLuckyStreakProtection) ? Math.floor(newLuckyStreakProtection) : 0,
         lastClick: new Date().toISOString()
-      });
+      };
+
+      const updatedGameState = await storage.updateGameState(userId, updateData);
 
       // Broadcast to WebSocket clients
       broadcastToUser(userId, {
@@ -278,6 +291,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Purchase upgrade error:', error);
       res.status(500).json({ message: "Purchase failed" });
+    }
+  });
+
+  // Prestige routes
+  app.post("/api/game/prestige/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const gameState = await storage.getGameState(userId);
+      
+      if (!gameState) {
+        return res.status(404).json({ message: "Game state not found" });
+      }
+
+      if (!canPrestige(gameState)) {
+        const cost = calculatePrestigeCost(gameState.prestigeLevel || 0);
+        return res.status(400).json({ 
+          message: `Insufficient resets. Need ${cost} resets for prestige.`,
+          required: cost,
+          current: gameState.totalResets
+        });
+      }
+
+      const cost = calculatePrestigeCost(gameState.prestigeLevel || 0);
+      const newPrestigeLevel = (gameState.prestigeLevel || 0) + 1;
+      const newPrestigePoints = calculatePrestigePoints(newPrestigeLevel);
+
+      const updatedGameState = await storage.updateGameState(userId, {
+        currentNumber: 0,
+        totalClicks: 0,
+        totalResets: gameState.totalResets - cost,
+        prestigeLevel: newPrestigeLevel,
+        prestigePoints: (gameState.prestigePoints || 0) + newPrestigePoints,
+        clickMultiplier: 1,
+        buttonCooldown: 1.0,
+        resetChanceReduction: 0.0,
+        isAutoClickerActive: false,
+        resetInsuranceActive: false,
+        luckyStreakProtection: 0,
+        rageMode: false,
+        rageModeEndTime: null,
+        lastClick: null
+      });
+
+      // Broadcast to WebSocket clients
+      broadcastToUser(userId, {
+        type: 'gameState',
+        data: updatedGameState
+      });
+
+      res.json({
+        gameState: updatedGameState,
+        prestigePointsGained: newPrestigePoints
+      });
+    } catch (error) {
+      console.error('Prestige error:', error);
+      res.status(500).json({ message: "Prestige failed" });
+    }
+  });
+
+  // Leaderboard routes
+  app.get("/api/leaderboard/:type", async (req, res) => {
+    try {
+      const { type } = req.params;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      let leaderboard;
+      switch (type) {
+        case 'maxNumber':
+          leaderboard = await storage.getLeaderboardByMaxNumber(limit);
+          break;
+        case 'resets':
+          leaderboard = await storage.getLeaderboardByResets(limit);
+          break;
+        case 'prestige':
+          leaderboard = await storage.getLeaderboardByPrestige(limit);
+          break;
+        case 'clicks':
+        default:
+          leaderboard = await storage.getLeaderboard(limit);
+          break;
+      }
+
+      res.json(leaderboard);
+    } catch (error) {
+      console.error('Leaderboard error:', error);
+      res.status(500).json({ message: "Failed to get leaderboard" });
     }
   });
 

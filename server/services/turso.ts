@@ -27,8 +27,11 @@ export async function initializeDatabase() {
         id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
         user_id TEXT NOT NULL REFERENCES users(id),
         current_number INTEGER NOT NULL DEFAULT 0,
+        max_number INTEGER NOT NULL DEFAULT 0,
         total_clicks INTEGER NOT NULL DEFAULT 0,
         total_resets INTEGER NOT NULL DEFAULT 0,
+        prestige_level INTEGER NOT NULL DEFAULT 0,
+        prestige_points INTEGER NOT NULL DEFAULT 0,
         click_multiplier INTEGER NOT NULL DEFAULT 1,
         button_cooldown REAL NOT NULL DEFAULT 1.0,
         reset_chance_reduction REAL NOT NULL DEFAULT 0.0,
@@ -70,6 +73,25 @@ export async function initializeDatabase() {
     // Insert default upgrades
     await initializeDefaultUpgrades();
     
+    // Add migration for new columns if they don't exist
+    try {
+      await client.execute(`ALTER TABLE game_state ADD COLUMN max_number INTEGER DEFAULT 0`);
+    } catch (error) {
+      // Column might already exist, ignore error
+    }
+    
+    try {
+      await client.execute(`ALTER TABLE game_state ADD COLUMN prestige_level INTEGER DEFAULT 0`);
+    } catch (error) {
+      // Column might already exist, ignore error
+    }
+    
+    try {
+      await client.execute(`ALTER TABLE game_state ADD COLUMN prestige_points INTEGER DEFAULT 0`);
+    } catch (error) {
+      // Column might already exist, ignore error
+    }
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Failed to initialize database:', error);

@@ -1,11 +1,13 @@
-import { FolderSync, MousePointer, UserCircle } from "lucide-react";
+import { FolderSync, MousePointer, UserCircle, Crown, Trophy } from "lucide-react";
 
 interface GameHeaderProps {
   username: string;
   isConnected: boolean;
+  onOpenPrestige?: () => void;
+  onOpenLeaderboard?: () => void;
 }
 
-export default function GameHeader({ username, isConnected }: GameHeaderProps) {
+export default function GameHeader({ username, isConnected, onOpenPrestige, onOpenLeaderboard }: GameHeaderProps) {
   const handleSync = () => {
     window.location.reload();
   };
@@ -18,17 +20,31 @@ export default function GameHeader({ username, isConnected }: GameHeaderProps) {
             <MousePointer className="inline mr-2" size={24} />
             Button Clicker
           </h1>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             <div className="text-sm text-gray-300">
               <UserCircle className="inline mr-1" size={16} />
               <span>{username}</span>
             </div>
             <button 
+              onClick={onOpenPrestige}
+              className="game-button hover:bg-yellow-600 px-3 py-1 rounded-lg text-sm transition-colors"
+            >
+              <Crown className="inline mr-1" size={14} />
+              Престиж
+            </button>
+            <button 
+              onClick={onOpenLeaderboard}
+              className="game-button hover:bg-purple-600 px-3 py-1 rounded-lg text-sm transition-colors"
+            >
+              <Trophy className="inline mr-1" size={14} />
+              Лидеры
+            </button>
+            <button 
               onClick={handleSync}
               className="game-button hover:bg-blue-600 px-3 py-1 rounded-lg text-sm transition-colors"
             >
               <FolderSync className="inline mr-1" size={14} />
-              FolderSync
+              Синхр
             </button>
           </div>
         </div>

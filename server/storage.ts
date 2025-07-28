@@ -22,6 +22,9 @@ export interface IStorage {
   
   // Stats methods
   getLeaderboard(limit?: number): Promise<Array<{ user: User; gameState: GameState }>>;
+  getLeaderboardByMaxNumber(limit?: number): Promise<Array<{ user: User; gameState: GameState }>>;
+  getLeaderboardByResets(limit?: number): Promise<Array<{ user: User; gameState: GameState }>>;
+  getLeaderboardByPrestige(limit?: number): Promise<Array<{ user: User; gameState: GameState }>>;
 }
 
 export class TursoStorage implements IStorage {
@@ -89,6 +92,48 @@ export class TursoStorage implements IStorage {
       .from(users)
       .innerJoin(gameState, eq(users.id, gameState.userId))
       .orderBy(gameState.totalClicks)
+      .limit(limit);
+    
+    return result;
+  }
+
+  async getLeaderboardByMaxNumber(limit: number = 10): Promise<Array<{ user: User; gameState: GameState }>> {
+    const result = await db
+      .select({
+        user: users,
+        gameState: gameState
+      })
+      .from(users)
+      .innerJoin(gameState, eq(users.id, gameState.userId))
+      .orderBy(gameState.maxNumber)
+      .limit(limit);
+    
+    return result;
+  }
+
+  async getLeaderboardByResets(limit: number = 10): Promise<Array<{ user: User; gameState: GameState }>> {
+    const result = await db
+      .select({
+        user: users,
+        gameState: gameState
+      })
+      .from(users)
+      .innerJoin(gameState, eq(users.id, gameState.userId))
+      .orderBy(gameState.totalResets)
+      .limit(limit);
+    
+    return result;
+  }
+
+  async getLeaderboardByPrestige(limit: number = 10): Promise<Array<{ user: User; gameState: GameState }>> {
+    const result = await db
+      .select({
+        user: users,
+        gameState: gameState
+      })
+      .from(users)
+      .innerJoin(gameState, eq(users.id, gameState.userId))
+      .orderBy(gameState.prestigeLevel)
       .limit(limit);
     
     return result;

@@ -6,12 +6,16 @@ import GameHeader from "@/components/GameHeader";
 import GameStats from "@/components/GameStats";
 import MainGameArea from "@/components/MainGameArea";
 import UpgradesModal from "@/components/UpgradesModal";
+import PrestigeModal from "@/components/PrestigeModal";
+import LeaderboardModal from "@/components/LeaderboardModal";
 import GameNotifications from "@/components/GameNotifications";
 import GameStatusBar from "@/components/GameStatusBar";
 
 export default function Game() {
   const [userId, setUserId] = useState<string | null>(null);
   const [upgradesModalOpen, setUpgradesModalOpen] = useState(false);
+  const [prestigeModalOpen, setPrestigeModalOpen] = useState(false);
+  const [leaderboardModalOpen, setLeaderboardModalOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [platform, setPlatform] = useState<'web' | 'telegram'>('web');
 
@@ -94,6 +98,8 @@ export default function Game() {
       <GameHeader 
         username={platform === 'telegram' ? 'Telegram Player' : 'Web Player'}
         isConnected={isConnected}
+        onOpenPrestige={() => setPrestigeModalOpen(true)}
+        onOpenLeaderboard={() => setLeaderboardModalOpen(true)}
       />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -111,6 +117,19 @@ export default function Game() {
         userId={userId}
         gameState={gameState}
         onUpgradePurchased={refetchGameState}
+      />
+
+      <PrestigeModal
+        isOpen={prestigeModalOpen}
+        onClose={() => setPrestigeModalOpen(false)}
+        userId={userId}
+        gameState={gameState}
+        onPrestige={refetchGameState}
+      />
+
+      <LeaderboardModal
+        isOpen={leaderboardModalOpen}
+        onClose={() => setLeaderboardModalOpen(false)}
       />
       
       <GameNotifications />

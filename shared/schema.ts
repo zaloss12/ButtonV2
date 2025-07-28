@@ -15,8 +15,11 @@ export const gameState = sqliteTable("game_state", {
   id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
   userId: text("user_id").notNull().references(() => users.id),
   currentNumber: integer("current_number").notNull().default(0),
+  maxNumber: integer("max_number").notNull().default(0),
   totalClicks: integer("total_clicks").notNull().default(0),
   totalResets: integer("total_resets").notNull().default(0),
+  prestigeLevel: integer("prestige_level").notNull().default(0),
+  prestigePoints: integer("prestige_points").notNull().default(0),
   clickMultiplier: integer("click_multiplier").notNull().default(1),
   buttonCooldown: real("button_cooldown").notNull().default(1.0), // seconds
   resetChanceReduction: real("reset_chance_reduction").notNull().default(0.0),
