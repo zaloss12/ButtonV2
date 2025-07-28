@@ -109,9 +109,15 @@ export default function UpgradesModal({
   const purchasableUpgrades = upgrades.filter(u => u.type === 'purchasable');
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50">
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+      onClick={onClose}
+    >
       <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="game-card rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-600 shadow-2xl">
+        <div 
+          className="game-card rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-600 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Modal Header */}
           <div className="bg-[var(--game-bg)] px-6 py-4 border-b border-gray-600 flex items-center justify-between">
             <h2 className="text-2xl font-bold game-accent">
