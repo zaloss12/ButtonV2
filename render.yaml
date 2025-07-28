@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: button-clicker-game
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TURSO_DATABASE_URL
+        fromSecret: turso_database_url
+      - key: TURSO_AUTH_TOKEN
+        fromSecret: turso_auth_token
+      - key: TELEGRAM_BOT_TOKEN
+        fromSecret: telegram_bot_token
+    autoDeploy: false

@@ -53,6 +53,15 @@ export const userUpgrades = sqliteTable("user_upgrades", {
   timesUsed: integer("times_used").notNull().default(1),
 });
 
+export const dailyBonuses = sqliteTable("daily_bonuses", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  userId: text("user_id").notNull().references(() => users.id),
+  streakDay: integer("streak_day").notNull().default(1),
+  bonusAmount: integer("bonus_amount").notNull(),
+  resetBonus: integer("reset_bonus").notNull(),
+  claimedAt: text("claimed_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -72,6 +81,11 @@ export const insertUserUpgradeSchema = createInsertSchema(userUpgrades).omit({
   purchasedAt: true,
 });
 
+export const insertDailyBonusSchema = createInsertSchema(dailyBonuses).omit({
+  id: true,
+  claimedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertGameState = z.infer<typeof insertGameStateSchema>;
@@ -80,3 +94,5 @@ export type InsertUpgrade = z.infer<typeof insertUpgradeSchema>;
 export type Upgrade = typeof upgrades.$inferSelect;
 export type InsertUserUpgrade = z.infer<typeof insertUserUpgradeSchema>;
 export type UserUpgrade = typeof userUpgrades.$inferSelect;
+export type InsertDailyBonus = z.infer<typeof insertDailyBonusSchema>;
+export type DailyBonus = typeof dailyBonuses.$inferSelect;

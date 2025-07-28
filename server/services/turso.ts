@@ -70,6 +70,17 @@ export async function initializeDatabase() {
       )
     `);
 
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS daily_bonuses (
+        id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
+        user_id TEXT NOT NULL REFERENCES users(id),
+        streak_day INTEGER NOT NULL DEFAULT 1,
+        bonus_amount INTEGER NOT NULL,
+        reset_bonus INTEGER NOT NULL,
+        claimed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Insert default upgrades
     await initializeDefaultUpgrades();
     
@@ -103,88 +114,180 @@ async function initializeDefaultUpgrades() {
   const defaultUpgrades = [
     // Recommended upgrades (free with requirements)
     {
-      name: "Decrease Reset Chance",
-      description: "+0.01 reduction",
+      name: "Снижение шанса сброса",
+      description: "Уменьшает шанс сброса на 1%",
       type: "recommended",
       effect: JSON.stringify({ resetChanceReduction: 0.01 }),
       clickCost: 0,
       resetCost: 0,
-      requiredClicks: 10000,
-      requiredResets: 10,
+      requiredClicks: 100,
+      requiredResets: 5,
       isRepeatable: true
     },
     {
-      name: "Click Multiplier Boost",
-      description: "+1 clicks per button press",
+      name: "Усиление кликов",
+      description: "Каждый клик считается как 2 клика",
       type: "recommended",
       effect: JSON.stringify({ clickMultiplier: 1 }),
       clickCost: 0,
       resetCost: 0,
-      requiredClicks: 50000,
-      requiredResets: 100,
+      requiredClicks: 250,
+      requiredResets: 10,
       isRepeatable: true
     },
     {
-      name: "Lucky Streak Protection",
-      description: "Immunity to next 3 resets",
+      name: "Защита от неудач",
+      description: "Иммунитет к следующим 3 сбросам",
       type: "recommended",
       effect: JSON.stringify({ luckyStreakProtection: 3 }),
       clickCost: 0,
       resetCost: 0,
-      requiredClicks: 100000,
-      requiredResets: 500,
+      requiredClicks: 500,
+      requiredResets: 20,
+      isRepeatable: false
+    },
+    {
+      name: "Быстрые пальцы",
+      description: "Уменьшает задержку кнопки на 0.1 секунды",
+      type: "recommended",
+      effect: JSON.stringify({ buttonCooldown: -0.1 }),
+      clickCost: 0,
+      resetCost: 0,
+      requiredClicks: 50,
+      requiredResets: 0,
+      isRepeatable: true
+    },
+    {
+      name: "Мастер точности",
+      description: "Дополнительно снижает шанс сброса на 2%",
+      type: "recommended",
+      effect: JSON.stringify({ resetChanceReduction: 0.02 }),
+      clickCost: 0,
+      resetCost: 0,
+      requiredClicks: 1000,
+      requiredResets: 50,
+      isRepeatable: true
+    },
+    {
+      name: "Тройная сила",
+      description: "Каждый клик считается как 3 клика",
+      type: "recommended",
+      effect: JSON.stringify({ clickMultiplier: 2 }),
+      clickCost: 0,
+      resetCost: 0,
+      requiredClicks: 2000,
+      requiredResets: 100,
       isRepeatable: false
     },
     // Purchasable upgrades
     {
-      name: "Reduce Button Cooldown",
-      description: "-0.05 seconds",
+      name: "Ускорение кнопки",
+      description: "Уменьшает задержку на 0.05 секунды",
       type: "purchasable",
       effect: JSON.stringify({ buttonCooldown: -0.05 }),
-      clickCost: 3000,
-      resetCost: 5,
+      clickCost: 50,
+      resetCost: 1,
       requiredClicks: 0,
       requiredResets: 0,
       isRepeatable: true
     },
     {
-      name: "Auto-Clicker",
-      description: "1 click every 2 seconds",
+      name: "Авто-кликер",
+      description: "Автоматически кликает каждые 2 секунды",
       type: "purchasable",
       effect: JSON.stringify({ autoClicker: true }),
-      clickCost: 25000,
-      resetCost: 50,
+      clickCost: 500,
+      resetCost: 10,
       requiredClicks: 0,
       requiredResets: 0,
       isRepeatable: false
     },
     {
-      name: "Reset Insurance",
-      description: "50% chance to keep number on reset",
+      name: "Страховка от сброса",
+      description: "50% шанс сохранить число при сбросе",
       type: "purchasable",
       effect: JSON.stringify({ resetInsurance: true }),
-      clickCost: 15000,
-      resetCost: 25,
+      clickCost: 300,
+      resetCost: 5,
       requiredClicks: 0,
       requiredResets: 0,
       isRepeatable: false
     },
     {
-      name: "Click Rage Mode",
-      description: "Double clicks for 30 seconds",
+      name: "Режим ярости",
+      description: "Двойные клики в течение 30 секунд",
       type: "purchasable",
       effect: JSON.stringify({ rageMode: 30 }),
-      clickCost: 8000,
+      clickCost: 200,
+      resetCost: 3,
+      requiredClicks: 0,
+      requiredResets: 0,
+      isRepeatable: true
+    },
+    {
+      name: "Мега-кликер",
+      description: "Автоматически кликает каждую секунду в течение 60 секунд",
+      type: "purchasable",
+      effect: JSON.stringify({ megaAutoClicker: 60 }),
+      clickCost: 1000,
+      resetCost: 20,
+      requiredClicks: 0,
+      requiredResets: 0,
+      isRepeatable: true
+    },
+    {
+      name: "Щит чемпиона",
+      description: "Полная защита от следующих 5 сбросов",
+      type: "purchasable",
+      effect: JSON.stringify({ championShield: 5 }),
+      clickCost: 800,
       resetCost: 15,
+      requiredClicks: 0,
+      requiredResets: 0,
+      isRepeatable: true
+    },
+    {
+      name: "Временное замедление",
+      description: "Следующие 20 кликов имеют задержку 0.1 секунды",
+      type: "purchasable",
+      effect: JSON.stringify({ timeSlowClicks: 20 }),
+      clickCost: 400,
+      resetCost: 8,
+      requiredClicks: 0,
+      requiredResets: 0,
+      isRepeatable: true
+    },
+    {
+      name: "Удвоитель очков",
+      description: "Следующие 30 кликов дают двойные очки",
+      type: "purchasable",
+      effect: JSON.stringify({ doublePointsClicks: 30 }),
+      clickCost: 600,
+      resetCost: 12,
+      requiredClicks: 0,
+      requiredResets: 0,
+      isRepeatable: true
+    },
+    {
+      name: "Возрождение феникса",
+      description: "При сбросе возвращает 75% текущего числа",
+      type: "purchasable",
+      effect: JSON.stringify({ phoenixRevival: 0.75 }),
+      clickCost: 1500,
+      resetCost: 30,
       requiredClicks: 0,
       requiredResets: 0,
       isRepeatable: true
     }
   ];
 
+  // Clear user_upgrades first, then upgrades to respect FK constraint
+  await client.execute('DELETE FROM user_upgrades');
+  await client.execute('DELETE FROM upgrades');
+  
   for (const upgrade of defaultUpgrades) {
     await client.execute(`
-      INSERT OR IGNORE INTO upgrades (name, description, type, effect, click_cost, reset_cost, required_clicks, required_resets, is_repeatable)
+      INSERT INTO upgrades (name, description, type, effect, click_cost, reset_cost, required_clicks, required_resets, is_repeatable)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       upgrade.name,

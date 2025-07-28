@@ -1,13 +1,15 @@
-import { FolderSync, MousePointer, UserCircle, Crown, Trophy } from "lucide-react";
+import { FolderSync, MousePointer, UserCircle, Crown, Trophy, Gift, Star } from "lucide-react";
 
 interface GameHeaderProps {
   username: string;
   isConnected: boolean;
   onOpenPrestige?: () => void;
   onOpenLeaderboard?: () => void;
+  onOpenDailyBonus?: () => void;
+  onOpenAchievements?: () => void;
 }
 
-export default function GameHeader({ username, isConnected, onOpenPrestige, onOpenLeaderboard }: GameHeaderProps) {
+export default function GameHeader({ username, isConnected, onOpenPrestige, onOpenLeaderboard, onOpenDailyBonus, onOpenAchievements }: GameHeaderProps) {
   const handleSync = () => {
     window.location.reload();
   };
@@ -18,7 +20,7 @@ export default function GameHeader({ username, isConnected, onOpenPrestige, onOp
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold game-accent">
             <MousePointer className="inline mr-2" size={24} />
-            Button Clicker
+            Кликер Кнопки
           </h1>
           <div className="flex items-center space-x-3">
             <div className="text-sm text-gray-300">
@@ -38,6 +40,20 @@ export default function GameHeader({ username, isConnected, onOpenPrestige, onOp
             >
               <Trophy className="inline mr-1" size={14} />
               Лидеры
+            </button>
+            <button 
+              onClick={onOpenDailyBonus}
+              className="game-button hover:bg-green-600 px-3 py-1 rounded-lg text-sm transition-colors"
+            >
+              <Gift className="inline mr-1" size={14} />
+              Бонус
+            </button>
+            <button 
+              onClick={onOpenAchievements}
+              className="game-button hover:bg-indigo-600 px-3 py-1 rounded-lg text-sm transition-colors"
+            >
+              <Star className="inline mr-1" size={14} />
+              Достижения
             </button>
             <button 
               onClick={handleSync}

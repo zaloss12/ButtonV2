@@ -135,8 +135,21 @@ export default function LeaderboardModal({ isOpen, onClose }: LeaderboardModalPr
                           {getRankIcon(index + 1)}
                         </div>
                         <div>
-                          <div className="font-semibold text-white">
-                            {entry.user.telegramUsername || `Игрок ${entry.user.id.slice(0, 8)}`}
+                          <div className="font-semibold text-white flex items-center">
+                            {entry.user.telegramId ? (
+                              <>
+                                <span className="text-blue-400 mr-1">@</span>
+                                {entry.user.username.startsWith('tg_') ? 
+                                  entry.user.username.replace('tg_', '') : 
+                                  entry.user.username
+                                }
+                                <span className="ml-2 text-xs bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
+                                  TG
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-gray-300">{entry.user.username}</span>
+                            )}
                           </div>
                           <div className="text-sm text-gray-400">
                             {getStatSubValue(entry)}

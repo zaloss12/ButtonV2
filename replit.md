@@ -7,6 +7,8 @@ This is a real-time multiplayer button clicker game built with a modern web stac
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Language: Russian - всё приложение переведено на русский язык
+Platform migration: Переход с Railway на Render для развертывания
 
 ## System Architecture
 
@@ -34,9 +36,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Game Logic Engine
 - **Reset Probability**: Exponential reset chance calculation based on current number
-- **Upgrade System**: Purchasable improvements affecting click multipliers, cooldowns, and reset protection
+- **Upgrade System**: Expanded upgrade system with 15+ upgrades including new effects like time slow, double points, phoenix revival
 - **Cooldown Management**: Configurable button cooldown periods
-- **Special Features**: Rage mode, lucky streak protection, auto-clicker capabilities
+- **Special Features**: Rage mode, lucky streak protection, auto-clicker capabilities, mega-clickers, champion shields
+- **Daily Bonus System**: Daily login rewards with streak bonuses
+- **Achievement System**: 7+ achievements with progress tracking and rewards
 
 ### Real-time Synchronization
 - **WebSocket Server**: Custom WebSocket implementation for live game state updates
@@ -50,9 +54,11 @@ Preferred communication style: Simple, everyday language.
 
 ### User Interface
 - **Responsive Design**: Mobile-first approach with desktop optimization
-- **Game Components**: Modular UI with header, stats, main game area, and upgrades modal
+- **Game Components**: Modular UI with header, stats, main game area, upgrades modal, daily bonus, achievements, and leaderboard
 - **Visual Feedback**: Button animations, progress indicators, and notification system
 - **Dark Theme**: Consistent dark mode styling throughout the application
+- **Russian Localization**: Complete interface translation to Russian language
+- **Telegram Integration**: Login suggestion for web users, Telegram username display in leaderboard
 
 ## Data Flow
 

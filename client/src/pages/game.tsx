@@ -10,14 +10,20 @@ import PrestigeModal from "@/components/PrestigeModal";
 import LeaderboardModal from "@/components/LeaderboardModal";
 import GameNotifications from "@/components/GameNotifications";
 import GameStatusBar from "@/components/GameStatusBar";
+import TelegramLoginSuggestion from "@/components/TelegramLoginSuggestion";
+import DailyBonusModal from "@/components/DailyBonusModal";
+import AchievementsModal from "@/components/AchievementsModal";
 
 export default function Game() {
   const [userId, setUserId] = useState<string | null>(null);
   const [upgradesModalOpen, setUpgradesModalOpen] = useState(false);
   const [prestigeModalOpen, setPrestigeModalOpen] = useState(false);
   const [leaderboardModalOpen, setLeaderboardModalOpen] = useState(false);
+  const [dailyBonusModalOpen, setDailyBonusModalOpen] = useState(false);
+  const [achievementsModalOpen, setAchievementsModalOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [platform, setPlatform] = useState<'web' | 'telegram'>('web');
+  const [user, setUser] = useState<any>(null);
 
   const { gameState, loading, clickButton, refetchGameState } = useGameState(userId);
   const { sendMessage } = useWebSocket(userId, (data) => {
@@ -48,6 +54,7 @@ export default function Game() {
           if (response.ok) {
             const { user } = await response.json();
             setUserId(user.id);
+            setUser(user);
           }
         } else {
           // Web app - generate or get user
@@ -66,6 +73,7 @@ export default function Game() {
             if (response.ok) {
               const { user } = await response.json();
               setUserId(user.id);
+              setUser(user);
               localStorage.setItem('buttonClickerUserId', user.id);
             }
           } else {
@@ -87,7 +95,7 @@ export default function Game() {
       <div className="min-h-screen flex items-center justify-center bg-[var(--game-bg)]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--game-accent)] mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading game...</p>
+          <p className="text-gray-300">Загрузка игры...</p>
         </div>
       </div>
     );
@@ -96,10 +104,12 @@ export default function Game() {
   return (
     <div className="min-h-screen bg-[var(--game-bg)] text-white font-['Inter'] pb-16">
       <GameHeader 
-        username={platform === 'telegram' ? 'Telegram Player' : 'Web Player'}
+        username={user?.telegramId ? user.username : 'Веб-игрок'}
         isConnected={isConnected}
         onOpenPrestige={() => setPrestigeModalOpen(true)}
         onOpenLeaderboard={() => setLeaderboardModalOpen(true)}
+        onOpenDailyBonus={() => setDailyBonusModalOpen(true)}
+        onOpenAchievements={() => setAchievementsModalOpen(true)}
       />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -131,12 +141,27 @@ export default function Game() {
         isOpen={leaderboardModalOpen}
         onClose={() => setLeaderboardModalOpen(false)}
       />
+
+      <DailyBonusModal
+        isOpen={dailyBonusModalOpen}
+        onClose={() => setDailyBonusModalOpen(false)}
+        userId={userId}
+        onBonusClaimed={refetchGameState}
+      />
+
+      <AchievementsModal
+        isOpen={achievementsModalOpen}
+        onClose={() => setAchievementsModalOpen(false)}
+        userId={userId}
+        gameState={gameState}
+      />
       
       <GameNotifications />
       <GameStatusBar 
         isConnected={isConnected}
         platform={platform}
       />
+      <TelegramLoginSuggestion user={user} />
     </div>
   );
 }

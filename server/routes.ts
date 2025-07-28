@@ -380,6 +380,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Daily bonus routes
+  app.get('/api/daily-bonus/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Simple implementation for now - always allow claiming
+      const canClaim = true;
+      const streakDay = 1;
+      const bonusAmount = 50;
+      const resetBonus = 2;
+      
+      res.json({
+        canClaim,
+        streakDay,
+        bonusAmount,
+        resetBonus,
+        streakBonus: 0,
+        nextBonusIn: '00:00:00'
+      });
+    } catch (error) {
+      console.error('Daily bonus check error:', error);
+      res.status(500).json({ message: 'Ошибка проверки ежедневного бонуса' });
+    }
+  });
+
+  app.post('/api/daily-bonus/claim/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const gameState = await storage.getGameState(userId);
+      if (!gameState) {
+        return res.status(404).json({ message: 'Состояние игры не найдено' });
+      }
+
+      const bonusAmount = 50;
+      const resetBonus = 2;
+
+      await storage.updateGameState(userId, {
+        totalClicks: gameState.totalClicks + bonusAmount,
+        totalResets: gameState.totalResets + resetBonus
+      });
+
+      res.json({
+        bonusAmount,
+        resetBonus,
+        streakDay: 1
+      });
+    } catch (error) {
+      console.error('Daily bonus claim error:', error);
+      res.status(500).json({ message: 'Ошибка получения ежедневного бонуса' });
+    }
+  });
+
+  // Achievement routes
+  app.get('/api/achievements', async (req, res) => {
+    try {
+      const achievements = [
+        {
+          id: '1',
+          name: 'Первые шаги',
+          description: 'Сделайте 10 кликов',
+          requiredClicks: 10,
+          requiredResets: 0,
+          requiredMaxNumber: 0,
+          reward: '+5 кликов',
+          icon: '🎯'
+        }
+      ];
+      
+      res.json(achievements);
+    } catch (error) {
+      console.error('Get achievements error:', error);
+      res.status(500).json({ message: "Failed to get achievements" });
+    }
+  });
+
+  app.get('/api/achievements/user/:userId', async (req, res) => {
+    try {
+      res.json([]);
+    } catch (error) {
+      console.error('Get user achievements error:', error);
+      res.status(500).json({ message: "Failed to get user achievements" });
+    }
+  });
+
   // Telegram webhook
   app.post("/api/telegram/webhook", (req, res) => {
     bot.processUpdate(req.body);

@@ -64,15 +64,15 @@ export default function UpgradesModal({
       if (response.ok) {
         const data = await response.json();
         toast({
-          title: "Upgrade Purchased!",
-          description: `Successfully purchased ${data.upgrade.name}`,
+          title: "Улучшение куплено!",
+          description: `Успешно куплено: ${data.upgrade.name}`,
         });
         onUpgradePurchased();
         fetchUserUpgrades();
       } else {
         const error = await response.json();
         toast({
-          title: "Purchase Failed",
+          title: "Покупка не удалась",
           description: error.message,
           variant: "destructive"
         });
@@ -124,7 +124,7 @@ export default function UpgradesModal({
               <svg className="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 19V5M5 12l7-7 7 7"/>
               </svg>
-              Upgrades
+              Улучшения
             </h2>
             <button 
               onClick={onClose}
@@ -139,7 +139,7 @@ export default function UpgradesModal({
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--game-accent)] mx-auto mb-4"></div>
-                <p className="text-gray-300">Loading upgrades...</p>
+                <p className="text-gray-300">Загрузка улучшений...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -148,7 +148,7 @@ export default function UpgradesModal({
                 <div>
                   <h3 className="text-xl font-semibold mb-4 game-success flex items-center">
                     <Gift className="mr-2" size={20} />
-                    Recommended Upgrades (Free)
+                    Рекомендуемые улучшения (Бесплатно)
                   </h3>
                   
                   <div className="space-y-4">
@@ -218,7 +218,7 @@ export default function UpgradesModal({
                 <div>
                   <h3 className="text-xl font-semibold mb-4 game-accent flex items-center">
                     <ShoppingCart className="mr-2" size={20} />
-                    Purchasable Upgrades
+                    Покупаемые улучшения
                   </h3>
                   
                   <div className="space-y-4">
