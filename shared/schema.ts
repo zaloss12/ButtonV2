@@ -29,6 +29,8 @@ export const gameState = sqliteTable("game_state", {
   rageMode: integer("rage_mode", { mode: "boolean" }).notNull().default(false),
   rageModeEndTime: text("rage_mode_end_time"),
   lastClick: text("last_click"),
+  lastDailyBonusClaim: text("last_daily_bonus_claim"),
+  streakDay: integer("streak_day").notNull().default(1),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

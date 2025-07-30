@@ -92,11 +92,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           platform: platform || 'web'
         });
         user = await storage.createUser(userData);
-        
         // Create initial game state
         const gameStateData = insertGameStateSchema.parse({
           userId: user.id,
-          lastClick: null
+          lastClick: null,
+          lastDailyBonusClaim: null,
+          streakDay: 1
         });
         await storage.createGameState(gameStateData);
       }
@@ -117,7 +118,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!gameState) {
         const gameStateData = insertGameStateSchema.parse({
           userId,
-          lastClick: null
+          lastClick: null,
+          lastDailyBonusClaim: null,
+          streakDay: 1
         });
         gameState = await storage.createGameState(gameStateData);
       }
@@ -132,42 +135,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/game/click/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
-      let gameState = await storage.getGameState(userId);
-      
-      if (!gameState) {
-        return res.status(404).json({ message: "Game state not found" });
+      const rawGameState = await storage.getGameState(userId);
+      if (!rawGameState) {
+        res.status(404).json({ message: "Game state not found" });
+        return;
       }
-
-      gameState = checkRageModeExpiry(gameState);
-
+      const gameState = checkRageModeExpiry(rawGameState);
       // Check cooldown
       const lastClickDate = gameState.lastClick ? new Date(gameState.lastClick) : null;
       if (isButtonOnCooldown(lastClickDate, gameState.buttonCooldown)) {
         const remaining = getRemainingCooldown(lastClickDate, gameState.buttonCooldown);
-        return res.status(429).json({ 
+        res.status(429).json({ 
           message: "Button on cooldown",
           remainingCooldown: remaining
         });
+        return;
       }
-
       const prestigeBonus = getPrestigeBonus(gameState.prestigeLevel || 0);
       const totalMultiplier = gameState.clickMultiplier + prestigeBonus.clickMultiplier;
       const totalResetReduction = gameState.resetChanceReduction + prestigeBonus.resetChanceReduction;
-      
       const clicksToAdd = calculateClicksToAdd(1, totalMultiplier, gameState.rageMode);
       const newNumber = gameState.currentNumber + clicksToAdd;
       const newTotalClicks = gameState.totalClicks + clicksToAdd;
       const newMaxNumber = Math.max(gameState.maxNumber || 0, newNumber);
-
       // Check for reset
       let resetOccurred = false;
       let finalNumber = newNumber;
       let newTotalResets = gameState.totalResets;
       let newLuckyStreakProtection = gameState.luckyStreakProtection;
-
       if (shouldReset(newNumber, totalResetReduction, gameState.luckyStreakProtection)) {
         resetOccurred = true;
-        
         // Check reset insurance
         if (gameState.resetInsuranceActive && Math.random() < 0.5) {
           // Insurance saved us, keep 50% of the number
@@ -175,14 +172,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           finalNumber = 0;
           newTotalResets += 1;
-          
           // Use lucky streak protection
           if (gameState.luckyStreakProtection > 0) {
             newLuckyStreakProtection -= 1;
           }
         }
       }
-
       // Validate all values before saving
       const updateData = {
         currentNumber: isFinite(finalNumber) ? Math.floor(finalNumber) : 0,
@@ -192,15 +187,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         luckyStreakProtection: isFinite(newLuckyStreakProtection) ? Math.floor(newLuckyStreakProtection) : 0,
         lastClick: new Date().toISOString()
       };
-
       const updatedGameState = await storage.updateGameState(userId, updateData);
-
       // Broadcast to WebSocket clients
       broadcastToUser(userId, {
         type: 'gameState',
         data: updatedGameState
       });
-
       res.json({
         gameState: updatedGameState,
         clicksAdded: clicksToAdd,
@@ -384,20 +376,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/daily-bonus/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      
-      // Simple implementation for now - always allow claiming
-      const canClaim = true;
-      const streakDay = 1;
+      const gameState = await storage.getGameState(userId);
+      if (!gameState) {
+        return res.status(404).json({ message: 'Состояние игры не найдено' });
+      }
+      const now = Date.now();
+      const lastClaim = gameState.lastDailyBonusClaim ? new Date(gameState.lastDailyBonusClaim).getTime() : 0;
+      const diff = now - lastClaim;
+      const DAY = 24 * 60 * 60 * 1000;
+      let canClaim = false;
+      let nextBonusIn = '00:00:00';
+      let streakDay = gameState.streakDay || 1;
+      if (!lastClaim || diff >= DAY) {
+        canClaim = true;
+        nextBonusIn = '00:00:00';
+      } else {
+        canClaim = false;
+        const ms = DAY - diff;
+        const h = String(Math.floor(ms / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+        nextBonusIn = `${h}:${m}:${s}`;
+      }
       const bonusAmount = 50;
       const resetBonus = 2;
-      
       res.json({
         canClaim,
         streakDay,
         bonusAmount,
         resetBonus,
         streakBonus: 0,
-        nextBonusIn: '00:00:00'
+        nextBonusIn
       });
     } catch (error) {
       console.error('Daily bonus check error:', error);
@@ -408,24 +417,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/daily-bonus/claim/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      
       const gameState = await storage.getGameState(userId);
       if (!gameState) {
         return res.status(404).json({ message: 'Состояние игры не найдено' });
       }
-
+      const now = Date.now();
+      const lastClaim = gameState.lastDailyBonusClaim ? new Date(gameState.lastDailyBonusClaim).getTime() : 0;
+      const DAY = 24 * 60 * 60 * 1000;
+      let streakDay = gameState.streakDay || 1;
+      if (lastClaim && now - lastClaim < DAY) {
+        return res.status(400).json({ message: 'Бонус уже получен. Приходите позже!' });
+      }
+      // streak: если вчера был бонус, увеличиваем, иначе сбрасываем
+      if (lastClaim && now - lastClaim < 2 * DAY && now - lastClaim >= DAY) {
+        streakDay += 1;
+      } else if (lastClaim && now - lastClaim >= 2 * DAY) {
+        streakDay = 1;
+      }
       const bonusAmount = 50;
       const resetBonus = 2;
-
       await storage.updateGameState(userId, {
         totalClicks: gameState.totalClicks + bonusAmount,
-        totalResets: gameState.totalResets + resetBonus
+        totalResets: gameState.totalResets + resetBonus,
+        lastDailyBonusClaim: new Date().toISOString(),
+        streakDay
       });
-
       res.json({
         bonusAmount,
         resetBonus,
-        streakDay: 1
+        streakDay
       });
     } catch (error) {
       console.error('Daily bonus claim error:', error);
