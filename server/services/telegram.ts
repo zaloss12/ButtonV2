@@ -1,3 +1,4 @@
+import "./env-init.js";
 import TelegramBot from "node-telegram-bot-api";
 
 const token = process.env.TELEGRAM_BOT_TOKEN || "7982526701:AAFh_oI0yByuY53iW_FFI8W9jLL3fG37oY8";

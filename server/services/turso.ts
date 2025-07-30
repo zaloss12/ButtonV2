@@ -1,3 +1,4 @@
+import "./env-init.js";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "../../shared/schema.js";
